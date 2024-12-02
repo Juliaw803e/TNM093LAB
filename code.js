@@ -32,8 +32,8 @@ function initializeGrid() {
         const forceRow = [];
         for (let j = 0; j < (cols); j++) {
 
-            var posX = cols + (width)/(cols+1)*(j+1); 
-            var posY = rows + (height)/(rows+1)*(i+1); 
+            const posX = cols + (width)/(cols+1)*(j+1); 
+            const posY = rows + (height)/(rows+1)*(i+1); 
             positionRow.push([posX, posY]); // ! TODO: think about how to calculate initial positions for the nodes
             velocityRow.push([0, 0]); // Initial velocity
             forceRow.push([0, 0]); // Initial force
@@ -47,34 +47,7 @@ function initializeGrid() {
 }
 
 
-//Draw the nodes (circles) on the SVG.
-function drawNodes() {
-   // example of how to draw nodes on the svg
-   const nodes = svg.selectAll("circle").data(positions.flat());
-   nodes
-       .enter()
-       .append("circle")
-       .attr("r", nodeRadius*2)
-       .merge(nodes)
-       .attr("cx", (d) => d[0])
-       .attr("cy", (d) => d[1])
-       .attr("fill", "blue")
-       .attr("stroke", "white")
-       .attr("stroke-width", 2); 
-s
-    var dragHandler = d3.drag()
-        .on("drag", function(event, d){
-            d3.select(this).attr("cx", event.x).attr("cy", event.y); 
-            d[0] = event.x;
-            d[1] = event.y;}); 
 
-          
-
-    nodes.call(dragHandler); 
-    
-    
-   nodes.exit().remove();
-}
 
 
 function drawEdges() {
@@ -102,7 +75,7 @@ function drawEdges() {
             .attr("stroke-width", 2); 
         }  
     }
-        //vertical lines 
+     //vertical lines 
     for (let i = 0; i < positions.length - 1; i++) {
         for (let j = 0; j < positions[i].length; j++) {
 
@@ -123,13 +96,137 @@ function drawEdges() {
         }
       }
 
+    //diagonal lines "\"
+    for (let i = 0; i < positions.length - 1; i++) {
+        for (let j = 0; j < positions[i].length-1; j++) {
+
+          const startNodePosition_x = positions[i][j][0];
+          const endNodePosition_x = positions[i + 1][j+1][0];
+
+          const startNodePosition_y = positions[i][j][1];
+          const endNodePosition_y = positions[i + 1][j+1][1];
+  
+          // Append a vertical line (edge) between the nodes
+          d3.select("svg")
+            .append('line')
+            .attr("x1", startNodePosition_x)
+            .attr("y1", startNodePosition_y)
+            .attr("x2", endNodePosition_x)
+            .attr("y2", endNodePosition_y)
+            .attr("stroke", "yellow")
+            .attr("stroke-width", 2);
+        }
+      } 
+
+         //diagonal lines "/"
+    for (let i = 1; i < positions.length; i++) {
+        for (let j = 0; j < positions[i].length-1; j++) {
+
+          const startNodePosition_x = positions[i][j][0];
+          const endNodePosition_x = positions[i -1][j+1][0];
+
+          const startNodePosition_y = positions[i][j][1];
+          const endNodePosition_y = positions[i-1][j+1][1];
+  
+          // Append a vertical line (edge) between the nodes
+          d3.select("svg")
+            .append('line')
+            .attr("x1", startNodePosition_x)
+            .attr("y1", startNodePosition_y)
+            .attr("x2", endNodePosition_x)
+            .attr("y2", endNodePosition_y)
+            .attr("stroke", "yellow")
+            .attr("stroke-width", 2);
+        }
+      } 
+ 
+   
 }
 
+//Draw the nodes (circles) on the SVG.
+function drawNodes() {
+    // example of how to draw nodes on the svg
+    const nodes = svg.selectAll("circle").raise().data(positions.flat());
+    nodes
+        .enter()
+        .append("circle")
+        .attr("r", nodeRadius*2)
+        .merge(nodes)
+        .attr("cx", (d) => d[0])
+        .attr("cy", (d) => d[1])
+        .attr("fill", "blue")
+        .attr("stroke", "white")
+        .attr("stroke-width", 2) 
+        .call(dragHandler);
+ 
+        return svg.node();
+     
+      }  
+ 
+const dragHandler = d3.drag()
+.on("start", started)
+.on("drag", dragged)
+.on("end", ended); 
+ 
+     function started(d) {
+         //isRunning= false; 
+ 
+         /* const circle = d3.select(this).classed("dragging", true);
+         const dragged = (event, d) => circle.raise().attr("cx", d.x = event.x).attr("cy", d.y = event.y);
+         const ended = () => circle.classed("dragging", false);
+         event.on("drag", dragged).on("end", ended);*/ 
+ 
+        d.fx = d[0];
+        d.fy = d[1];
+        //d3.select(this).raise().classed("active", true);
+   // d.fx = d.x;
+  //  d.fy = d.y;
+     
+        console.log(d[0]); 
+        console.log(d[1]);
+     }
+ 
+ 
+   function dragged(event, d) {
+ 
+        // const circle = d3.select(this);
+         //circle.attr("cx", d.x = event.x).attr("cy", d.y = event.y);
+         d.fx = event.x;
+         d.fy = event.y;
+
+       /* d3.select(this)
+        .attr("cx", d.dx)
+        .attr("cy", d.dy);*/
+    console.log(d.fx); 
+        console.log(d.fy);
+  
+        console.log(d3.event);
+     
+
+
+       //d[0] = event.x; 
+       //d[1] = event.y; 
+
+       //  d.fx = event.x;
+      //   d.fy = event.y;
+
+         
+        // d.x = d3.event.x;
+         //d.y = d3.event.y;
+     }
+ 
+     function ended(d) {
+        //d3.select(this).classed("active", false);
+         d.fx = null;
+         d.fy = null;
+     }
 
 
 //Forces:
 
 function hookes(length_q, length_p) {
+
+   const  stiffness = 20; 
     springLenght = length_q - length_q; 
     NormaliseradFaktor = (length_q-length_q)/Math.abs(length_q-length_q); 
     return -stiffness * (Math.abs(length_q - length_p)-springLenght)*NormaliseradFaktor; // Kraft
@@ -174,16 +271,16 @@ function updatePositions() {
             // TODO: potentially implement position and velocity updates here.
             // Example:
             
-            velocities[i][j][0] +=  velocities[i-1][j-1][0] + stimeStep*(calculateForces[i-1][j-1][0]/mass); 
-            velocities[i][j][1] += velocities[i-1][j-1][1] + stimeStep*(calculateForces[i-1][j-1][1]/mass); 
-            positions[i][j][0] += positions[i-1][j-1][0] + stimeStep*velocities[i-1][j-1][0] ; 
-            positions[i][j][1] += positions[i-1][j-1][1] + stimeStep*velocities[i-1][j-1][1] ;
+            velocities[i][j][0] +=  velocities[i-1][j-1][0] + timeStep*(forces[i-1][j-1][0]/mass); 
+            velocities[i][j][1] += velocities[i-1][j-1][1] + timeStep*(forces[i-1][j-1][1]/mass); 
+            positions[i][j][0] += positions[i-1][j-1][0] + timeStep*velocities[i-1][j-1][0] ; 
+            positions[i][j][1] += positions[i-1][j-1][1] + timeStep*velocities[i-1][j-1][1] ;
 
         }
     }
-
-    drawEdges();
     drawNodes();
+    drawEdges();
+   
 
 }
 
@@ -192,12 +289,11 @@ function simulationLoop() {
     if (!isRunning) return;
 
     // TODO: think about how to implement the simulation loop. below are some functions that you might find useful.
+    calculateForces(); 
     updatePositions();
 
     requestAnimationFrame(simulationLoop);
 }
-
-
 
 
 
