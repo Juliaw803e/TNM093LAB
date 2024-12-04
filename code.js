@@ -13,32 +13,42 @@ const nodeRadius = 5;
 const timeStep = 0.016;
 const padding = 50;
 const mass = 0.2; 
+let currentMethod = "euler"; 
 // Arrays to hold positions, velocities, and forces
 let positions = [];
 let velocities = [];
 let forces = [];
 let isRunning = false;
+let prevPositions = []; 
 
 function initializeGrid() {
     positions = [];
     velocities = [];
     forces = [];
+    prevPositions = []; 
+
     const xStep = (width - 2 * padding) / (cols - 1);
     const yStep = (height - 2 * padding) / (rows - 1);
 
     for (let i = 0; i < (rows); i++) {
         const positionRow = [];
+        const prevPositionRow = [];
         const velocityRow = [];
         const forceRow = [];
+        
         for (let j = 0; j < (cols); j++) {
 
             const posX = cols + (width)/(cols+1)*(j+1); 
             const posY = rows + (height)/(rows+1)*(i+1); 
+            
+
             positionRow.push([posX, posY]); // ! TODO: think about how to calculate initial positions for the nodes
+            prevPositionRow.push([posX, posY]); 
             velocityRow.push([0, 0]); // Initial velocity
             forceRow.push([0, 0]); // Initial force
         }
         positions.push(positionRow);
+        prevPositions.push(prevPositionRow);
         velocities.push(velocityRow);
         forces.push(forceRow);
     }
@@ -143,10 +153,10 @@ function drawEdges() {
    
 }
 
-//Draw the nodes (circles) on the SVG.
+
 function drawNodes() {
     // example of how to draw nodes on the svg
-    const nodes = svg.selectAll("circle").raise().data(positions.flat());
+    const nodes = svg.selectAll("circle").data(positions.flat());
     nodes
         .enter()
         .append("circle")
@@ -157,68 +167,43 @@ function drawNodes() {
         .attr("fill", "blue")
         .attr("stroke", "white")
         .attr("stroke-width", 2) 
-        .call(dragHandler);
+        .call(d3.drag()
+        .on("start", started)
+        .on("drag", dragged)
+        .on("end", ended));
  
-        return svg.node();
-     
+        //return svg.node();
+        nodes.exit().remove();
       }  
  
-const dragHandler = d3.drag()
-.on("start", started)
-.on("drag", dragged)
-.on("end", ended); 
- 
      function started(d) {
-         //isRunning= false; 
- 
-         /* const circle = d3.select(this).classed("dragging", true);
-         const dragged = (event, d) => circle.raise().attr("cx", d.x = event.x).attr("cy", d.y = event.y);
-         const ended = () => circle.classed("dragging", false);
-         event.on("drag", dragged).on("end", ended);*/ 
- 
-        d.fx = d[0];
-        d.fy = d[1];
-        //d3.select(this).raise().classed("active", true);
-   // d.fx = d.x;
-  //  d.fy = d.y;
-     
-        console.log(d[0]); 
-        console.log(d[1]);
+         isRunning= false; // Pausa simulationen nakenr en nod dras
      }
- 
+
  
    function dragged(event, d) {
- 
-        // const circle = d3.select(this);
-         //circle.attr("cx", d.x = event.x).attr("cy", d.y = event.y);
-         d.fx = event.x;
-         d.fy = event.y;
+       d[0] = event.x; //dragna noden pos
+       d[1] = event.y; 
 
-       /* d3.select(this)
-        .attr("cx", d.dx)
-        .attr("cy", d.dy);*/
-    console.log(d.fx); 
-        console.log(d.fy);
-  
-        console.log(d3.event);
-     
+          // Hitta index för den dragna noden i positionsmatrisen
+          for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                if (positions[i][j] === d) { // Kontrollera vilken nod som dras
+                    lastModifiedI = i; // Spara raden
+                    lastModifiedJ = j; // Spara kolumnen
+                    break;
+                }
+            }
+        }
 
-
-       //d[0] = event.x; 
-       //d[1] = event.y; 
-
-       //  d.fx = event.x;
-      //   d.fy = event.y;
-
-         
-        // d.x = d3.event.x;
-         //d.y = d3.event.y;
+        isModified = true; // Indikera att en förändring har skett
+        drawNodes(); 
+        drawEdges();
      }
  
      function ended(d) {
-        //d3.select(this).classed("active", false);
-         d.fx = null;
-         d.fy = null;
+        //isRunning = true; // Återuppta simulationen
+        //simulationLoop(); // Starta simulationen
      }
 
 
@@ -239,7 +224,6 @@ function dampingForce(velocity_p, velocity_q){
 
 }
 
-
 function calculateForces() {
     // Reset forces
     for (let i = 0; i < rows; i++) {
@@ -259,50 +243,105 @@ function calculateForces() {
     // TODO: add your implementation here.
     // Example:
     // - Calculate spring forces (horizontal, vertical, diagonal/sheer).
-
 }
 
-function updatePositions() {
-    // TODO: think about how to calculate positions and velocities. (e.g. Euler's method)
-    calculateForces();
 
-    for (let i = 1; i < rows; i++) {
-        for (let j = 1; j < cols; j++) {
+//Euler
+function Euler(){
+
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
             // TODO: potentially implement position and velocity updates here.
             // Example:
             
-            velocities[i][j][0] +=  velocities[i-1][j-1][0] + timeStep*(forces[i-1][j-1][0]/mass); 
-            velocities[i][j][1] += velocities[i-1][j-1][1] + timeStep*(forces[i-1][j-1][1]/mass); 
-            positions[i][j][0] += positions[i-1][j-1][0] + timeStep*velocities[i-1][j-1][0] ; 
-            positions[i][j][1] += positions[i-1][j-1][1] + timeStep*velocities[i-1][j-1][1] ;
+            velocities[i][j][0] += timeStep*(forces[i][j][0]/mass); 
+            velocities[i][j][1] += timeStep*(forces[i][j][1]/mass); 
+
+           positions[i][j][0] += timeStep*velocities[i][j][0] ; 
+           positions[i][j][1] += timeStep*velocities[i][j][1] ;
 
         }
     }
+}
+
+//Verlet
+function verlet(){
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+            // TODO: potentially implement position and velocity updates here.
+            // Example:
+            
+            //velocities[i+1][j+1][0] += (1/(2*timeStep)) * (velocities[i+1][j+1][0] - velocities[i-1][j-1][0] ); 
+           // velocities[i+1][j+1][1] += (1/(2*timeStep)) * (velocities[i+1][j+1][1] - velocities[i-1][j-1][1] ); 
+            //positions[i+1][j+1][0] += 2*(positions[i][j][0])-(positions[i-1][j-1][0]) + (forces[i][j][0]/mass)*timeStep*timeStep; 
+           // positions[i+1][j+1][1] += 2*(positions[i][j][1])-(positions[i-1][j-1][1]) + (forces[i][j][1]/mass)*timeStep*timeStep; 
+
+            
+            const xNext = 2*positions[i][j][0] - prevPositions[i][j][0] + (forces[i][j][0]/mass) * timeStep*timeStep;
+            const yNext = 2*positions[i][j][1] - prevPositions[i][j][1] + (forces[i][j][1]/mass) * timeStep*timeStep;
+            
+            // Uppdatera hastigheter
+            //velocities[i][j][0] = (xNext-positions[i][j][0]) / (2*timeStep);
+            //velocities[i][j][1] = (yNext-positions[i][j][1]) / (2*timeStep);
+
+            // Uppdatera positioner
+            newPositions[i][j][0] = xNext;
+            newPositions[i][j][1] = yNext;
+        }
+    }
+    prevPositions = JSON.parse(JSON.stringify(positions));
+    positions = newPositions;
+
+    console.log(newPositions);
+    console.log(prevPositions);
+}
+
+
+function updatePositions() {
+    // TODO: think about how to calculate positions and velocities. (e.g. Euler's method)
+    if(currentMethod === "euler"){
+        Euler(); 
+    }
+    else{
+        verlet(); 
+    }
+  
     drawNodes();
     drawEdges();
-   
-
 }
 
 
 function simulationLoop() {
-    if (!isRunning) return;
 
     // TODO: think about how to implement the simulation loop. below are some functions that you might find useful.
-    calculateForces(); 
-    updatePositions();
+    if (!isRunning || !isModified) return; // Kör bara om simulationen är aktiv och något har ändrats
+
+    if (lastModifiedI !== null && lastModifiedJ !== null) {
+        calculateForces();
+        updatePositions([lastModifiedI, lastModifiedJ]); // Skicka den senaste flyttade nodens index
+    }
 
     requestAnimationFrame(simulationLoop);
 }
-
-
-
 
 // Start/Stop simulation
 document.getElementById("toggle-simulation").addEventListener("click", () => {
     isRunning = !isRunning;
     document.getElementById("toggle-simulation").innerText = isRunning ? "Stop Simulation" : "Start Simulation";
     if (isRunning) simulationLoop();
+});
+
+//switch to verlet or back to euler
+document.getElementById("toggle-method").addEventListener("click", () => {
+    if(currentMethod === "euler"){
+        currentMethod = "verlet";
+        document.getElementById("toggle-method").innerText = "Switch to Euler"; 
+    }
+    else{
+        currentMethod = "euler";
+        document.getElementById("toggle-method").innerText = "Switch to Verlet"; 
+    }
+ 
 });
 
 // Update grid rows
