@@ -12,7 +12,7 @@ let damping = parseFloat(document.getElementById("damping").value);
 const nodeRadius = 5;
 const timeStep = 0.016;
 const padding = 200;
-const mass = 1;
+const mass = parseFloat(document.getElementById("mass").value);
 let currentMethod = "euler";
 // Arrays to hold positions, velocities, and forces
 let positions = [];
@@ -22,6 +22,8 @@ let isRunning = false;
 let prevPositions = [];
 let xStep = 0; 
 let yStep = 0; 
+let lastModifiedI = null; // Spara raden
+let lastModifiedJ = null;
 
 function initializeGrid() {
     positions = [];
@@ -29,7 +31,7 @@ function initializeGrid() {
     forces = [];
     prevPositions = [];
 
-    xStep = (width - 2 * padding) / (cols - 1);
+    xStep = (width - 2 * padding) / (cols - 1); //Avt√•nd
     yStep = (height - 2 * padding) / (rows - 1);
 
 
@@ -41,7 +43,7 @@ function initializeGrid() {
 
         for (let j = 0; j < (cols); j++) {
 
-            const posX = cols + (width) / (cols + 1) * (j + 1);
+            const posX = cols + (width) / (cols + 1) * (j + 1); //position f√∂r noder
             const posY = rows + (height) / (rows + 1) * (i + 1);
 
 
@@ -172,10 +174,8 @@ function drawNodes() {
         .attr("stroke-width", 2)
         .call(d3.drag()
             .on("start", started)
-            .on("drag", dragged)
-            .on("end", ended));
+            .on("drag", dragged)); 
 
-    //return svg.node();
     nodes.exit().remove();
 }
 
@@ -188,7 +188,7 @@ function dragged(event, d) {
     d[0] = event.x; //dragna noden pos
     d[1] = event.y;
 
-    // Hitta index fˆr den dragna noden i positionsmatrisen
+    // Hitta index f√∂r den dragna noden i positionsmatrisen
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
             if (positions[i][j] === d) { // Kontrollera vilken nod som dras
@@ -199,33 +199,15 @@ function dragged(event, d) {
         }
     }
 
-    isModified = true; // Indikera att en fˆr‰ndring har skett
+    isModified = true; // Indikera att en f√∂r√§ndring har skett
     drawNodes();
     drawEdges();
 }
 
-function ended(d) {
-    //isRunning = true; // ≈teruppta simulationen
-    //simulationLoop(); // Starta simulationen
-}
+
 
 
 //Forces:
-
-/*function hookes(length_q, length_p, direction) {
-   
-    const stiffness = 20;
-    springLenght = length_q - length_p
-    NormaliseradFaktor = (length_q - length_p) / Math.abs(length_q - length_p);
-    return -stiffness * (Math.abs(length_q - length_p) - springLenght) * NormaliseradFaktor; // Kraft
-
-}
-
-function dampingForce(velocity_p, velocity_q) {
-    //damping force
-    return damping * (velocity_p - velocity_q);
-
-}*/
 
 function applyForce(row_p, col_p, row_q, col_q, direction) {
     const dx = positions[row_q][col_q][0] - positions[row_p][col_p][0]; 
@@ -234,18 +216,18 @@ function applyForce(row_p, col_p, row_q, col_q, direction) {
 
     const forceMagnitude = restoreForce * (dist - direction); 
 
-    //nomraliser o applicer fj‰derkraft
+    //nomraliser o applicer fj√§derkraft
     const fx = forceMagnitude * (dx / dist); 
     const fy = forceMagnitude * (dy / dist);
 
     forces[row_p][col_p][0] += fx; 
     forces[row_p][col_p][1] += fy;
 
-    //motkraft
+    //motkraft p√• andra punkten
     forces[row_q][col_q][0] -= fx;
     forces[row_q][col_q][1] -= fy;
 
-    //D‰mping
+    //D√§mping
     const vx = velocities[row_q][col_q][0] - velocities[row_p][col_p][0]; 
     const vy = velocities[row_q][col_q][1] - velocities[row_p][col_p][1]; 
 
@@ -275,29 +257,19 @@ function calculateForces() {
             //horisomtella
             if (j < cols - 1) {
 
-                //forces[i][j][0] = dampingForce(velocities[i][j][0], velocities[i][j + 1][0]) + restoreForce + hookes(positions[i][j][0], positions[i][j + 1][0], xStep);
-               // forces[i][j][1] = dampingForce(velocities[i][j][1], velocities[i][j + 1][1]) + restoreForce + hookes(positions[i][j][1], positions[i][j + 1][1], yStep);
-
                 applyForce(i, j, i, j + 1, xStep);  
                 
             }
             //vertikala
             if (i < rows - 1) {
 
-                //forces[i][j][0] = dampingForce(velocities[i][j][0], velocities[i + 1][j][0]) + restoreForce + hookes(positions[i][j][0], positions[i + 1][j][0], yStep);
-               // forces[i][j][1] = dampingForce(velocities[i][j][1], velocities[i+1][j][1]) + restoreForce + hookes(positions[i][j][1], positions[i+1][j][1]);
                  applyForce(i, j, i+1, j, yStep); 
             }
             //diagonala
             if (i < rows - 1 && j < cols - 1) {
 
-               // forces[i][j][0] = dampingForce(velocities[i][j][0], velocities[i+1][j + 1][0]) + restoreForce + hookes(positions[i][j][0], positions[i+1][j + 1][0]);
-               // forces[i][j][1] = dampingForce(velocities[i][j][1], velocities[i+1][j + 1][1]) + restoreForce + hookes(positions[i][j][1], positions[i+1][j + 1][1]);
                 applyForce(i, j, i+1, j + 1, Math.sqrt(xStep*xStep + yStep*yStep));  
             }
-            //diagonala
-       
-
         }
     }
 
@@ -330,20 +302,14 @@ function verlet() {
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
             // TODO: potentially implement position and velocity updates here.
-            // Example:
-
-            //velocities[i+1][j+1][0] += (1/(2*timeStep)) * (velocities[i+1][j+1][0] - velocities[i-1][j-1][0] ); 
-            // velocities[i+1][j+1][1] += (1/(2*timeStep)) * (velocities[i+1][j+1][1] - velocities[i-1][j-1][1] ); 
-            //positions[i+1][j+1][0] += 2*(positions[i][j][0])-(positions[i-1][j-1][0]) + (forces[i][j][0]/mass)*timeStep*timeStep; 
-            // positions[i+1][j+1][1] += 2*(positions[i][j][1])-(positions[i-1][j-1][1]) + (forces[i][j][1]/mass)*timeStep*timeStep; 
-
+            // Example: 
 
             const xNext = 2 * positions[i][j][0] - prevPositions[i][j][0] + (forces[i][j][0] / mass) * timeStep * timeStep;
             const yNext = 2 * positions[i][j][1] - prevPositions[i][j][1] + (forces[i][j][1] / mass) * timeStep * timeStep;
 
             // Uppdatera hastigheter
-            velocities[i][j][0] = (xNext-positions[i][j][0]) / (2*timeStep);
-            velocities[i][j][1] = (yNext-positions[i][j][1]) / (2*timeStep);
+            velocities[i][j][0] = (xNext-prevPositions[i][j][0]) / (2*timeStep);
+            velocities[i][j][1] = (yNext-prevPositions[i][j][1]) / (2*timeStep);
 
             prevPositions[i][j][0] = positions[i][j][0]; 
             prevPositions[i][j][1] = positions[i][j][1]; 
@@ -373,11 +339,11 @@ function updatePositions() {
 function simulationLoop() {
 
     // TODO: think about how to implement the simulation loop. below are some functions that you might find useful.
-    if (!isRunning || !isModified) return; // Kˆr bara om simulationen ‰r aktiv och nÂgot har ‰ndrats
+    if (!isRunning || !isModified) return; // K√∂r bara om simulationen √§r aktiv och n√•got har √§ndrats
 
     if (lastModifiedI !== null && lastModifiedJ !== null) {
         calculateForces();
-        updatePositions([lastModifiedI, lastModifiedJ]); // Skicka den senaste flyttade nodens index
+        updatePositions(); // Skicka den senaste flyttade nodens index
     }
 
     requestAnimationFrame(simulationLoop);
@@ -426,7 +392,11 @@ document.getElementById("damping").addEventListener("input", (e) => {
     damping = parseFloat(e.target.value);
     document.getElementById("damping-value").textContent = damping.toFixed(2);
 });
+// Update mass
+document.getElementById("mass").addEventListener("input", (e) => {
+    mass = parseFloat(e.target.value);
+    document.getElementById("mass").textContent = mass.toFixed(2);
+});
 
 // Initialize the simulation
 initializeGrid();
-// additional functions 
