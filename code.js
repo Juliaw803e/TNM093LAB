@@ -209,14 +209,14 @@ function dragged(event, d) {
 
 //Forces:
 
-function applyForce(row_p, col_p, row_q, col_q, direction) {
+function calculateForce(row_p, col_p, row_q, col_q, direction) {
     const dx = positions[row_q][col_q][0] - positions[row_p][col_p][0]; 
     const dy = positions[row_q][col_q][1] - positions[row_p][col_p][1];
     const dist = Math.sqrt(dx * dx + dy * dy); 
 
     const forceMagnitude = restoreForce * (dist - direction); 
 
-    //nomraliser o applicer fjäderkraft
+    //nomralisera o fjäderkraft
     const fx = forceMagnitude * (dx / dist); 
     const fy = forceMagnitude * (dy / dist);
 
@@ -227,7 +227,7 @@ function applyForce(row_p, col_p, row_q, col_q, direction) {
     forces[row_q][col_q][0] -= fx;
     forces[row_q][col_q][1] -= fy;
 
-    //Dämping
+    //Damping
     const vx = velocities[row_q][col_q][0] - velocities[row_p][col_p][0]; 
     const vy = velocities[row_q][col_q][1] - velocities[row_p][col_p][1]; 
 
@@ -240,7 +240,7 @@ function applyForce(row_p, col_p, row_q, col_q, direction) {
 
 }
 
-function calculateForces() {
+function addForces() {
     // Reset forces
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -257,18 +257,18 @@ function calculateForces() {
             //horisomtella
             if (j < cols - 1) {
 
-                applyForce(i, j, i, j + 1, xStep);  
+                calculateForce(i, j, i, j + 1, xStep);  
                 
             }
             //vertikala
             if (i < rows - 1) {
 
-                 applyForce(i, j, i+1, j, yStep); 
+                 calculateForce(i, j, i+1, j, yStep); 
             }
             //diagonala
             if (i < rows - 1 && j < cols - 1) {
 
-                applyForce(i, j, i+1, j + 1, Math.sqrt(xStep*xStep + yStep*yStep));  
+                calculateForce(i, j, i+1, j + 1, Math.sqrt(xStep*xStep + yStep*yStep));  
             }
         }
     }
@@ -297,7 +297,7 @@ function Euler() {
 }
 
 //Verlet
-function verlet() {
+function Verlet() {
 
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -328,7 +328,7 @@ function updatePositions() {
         Euler();
     }
     else {
-        verlet();
+        Verlet();
     }
 
     drawNodes();
@@ -342,7 +342,7 @@ function simulationLoop() {
     if (!isRunning || !isModified) return; // Kör bara om simulationen är aktiv och något har ändrats
 
     if (lastModifiedI !== null && lastModifiedJ !== null) {
-        calculateForces();
+        addForces();
         updatePositions(); // Skicka den senaste flyttade nodens index
     }
 
@@ -356,10 +356,10 @@ document.getElementById("toggle-simulation").addEventListener("click", () => {
     if (isRunning) simulationLoop();
 });
 
-//switch to verlet or back to euler
+//switch to Verlet or back to euler
 document.getElementById("toggle-method").addEventListener("click", () => {
     if (currentMethod === "euler") {
-        currentMethod = "verlet";
+        currentMethod = "Verlet";
         document.getElementById("toggle-method").innerText = "Switch to Euler";
     }
     else {
